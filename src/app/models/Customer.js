@@ -10,13 +10,17 @@ class Customer extends Model {
             },
             {
                 sequelize,
+                underscored: true
             }
         );
     }
 
-    static assosiate(models)
+    static associate(models)
     {
-        this.hasMany(models.Contact);
+        this.hasMany(models.Contact, {
+            foreignKey: 'customer_id',
+            as: 'contacts'
+        });
     }
 }
 

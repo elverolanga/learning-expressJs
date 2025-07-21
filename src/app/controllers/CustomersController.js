@@ -1,70 +1,180 @@
-let customers = [
-            {id: 1, name: "Martin Langa", email:"martinlanga@example.com"},
-            {id: 2, name: "Elvero M", email: "elvero@example.com"},
-            {id: 3, name: "John Doe", email: "johndoe@unknown.com"}
-        ]
-
-import Customer from "../models/Customer.js";
+import Customer from '../models/Customer.js';
+import { Op } from 'sequelize';
+import { parseISO } from 'date-fns';
+import Contact from '../models/Contact.js'
+import * as Yup from 'yup';
 
 class CustomersController {
     //List's all customers
-    async index(req, res){
+    async index(req, res) {
+        //all the expected query parameters
+        const {
+            name,
+            email,
+            status,
+            createdBefore,
+            createdAfter,
+            updatedBefore,
+            updatedAfter,
+            sort,
+        } = req.query;
+
+        //page and limit [1 page displays {limit} items]
+        const page = req.query.page || 1;
+        const limit = req.query.limit || 25;
+
+        //where is the query 'object'
+        let where = {};
+        let order = [];
+
+        //here I'm just verifiying the valid query params
+        if (name) {
+            where = {
+                ...where,
+                name: {
+                    [Op.iLike]: name,
+                },
+            };
+        }
+        if (email) {
+            where = {
+                ...where,
+                email: {
+                    [Op.iLike]: email,
+                },
+            };
+        }
+        if (status) {
+            where = {
+                ...where,
+                status: {
+                    [Op.in]: status
+                        .split(',')
+                        .map((item) => item.toUpperCase()),
+                },
+            };
+        }
+        if (createdBefore) {
+            where = {
+                ...where,
+                createdAt: {
+                    //Op.gte[Operator:Greater than or equal to]
+                    //parseIso is used to format date
+                    [Op.gte]: parseISO(createdBefore),
+                },
+            };
+        }
+
+        if (createdAfter) {
+            where = {
+                ...where,
+                createdAt: {
+                    [Op.gte]: parseISO(createdAfter),
+                },
+            };
+        }
+        if (updatedBefore) {
+            where = {
+                ...where,
+                updatedAt: {
+                    [Op.gte]: parseISO(updatedBefore),
+                },
+            };
+        }
+
+        if (updatedAfter) {
+            where = {
+                ...where,
+                updatedAt: {
+                    [Op.gte]: parseISO(updatedAfter),
+                },
+            };
+        }
+        //localhost:PORT/PATH?sort=id:desc.name
+        //order = {['name', 'asc'], ['email', 'desc']}
+        if(sort){
+            //the sort param is used to build our order obj.
+            order = sort.split(',').map(item => item.split(':'));
+        }
         const data = await Customer.findAll({
-            limit: 1000
+            where,
+            include: [
+                {
+                    model: Contact,
+                    as:'contacts',
+                    attributes: ['id'],
+                }
+            ],
+            order,
+            limit,
+            //the offset here is the 'amout' of items to display
+            offset: limit * page - limit
         });
 
         return res.json(data);
     }
 
     //Show's a certain customer
-    show(req, res){
+    async show(req, res) {
         const id = parseInt(req.params.id);
-        const customer = customers.find(customer => customer.id === id);
-        const status = customer ? 200 : 404;
-        return res.status(status).json(customer);
+        const data = await Customer.findByPk(id);
+        if(data){
+            return res.status(200).json(data);
+        }
+
+        return res.status(404).json('User not found!');
     }
 
     //Registers a new customer
-    create(req, res){
-        const {name, email} = req.body;
-        const id = customers[customers.length - 1].id + 1;
-        const newCustomer = {
-            id,
-            name,
-            email
+    async create(req, res) {
+
+        const schema = Yup.object().shape(
+            {
+                name: Yup.string().required(),
+                email: Yup.string().email().required(),
+                status: Yup.string().uppercase(),
+            }
+        )
+
+        if(!(await schema.isValid(req.body))){
+            return res.status(400).json('Error on validating Schema!');
         }
-
-        customers.push(newCustomer);
-
-        return res.status(201).json(newCustomer);
+        const customer = await Customer.create(req.body);
+        return res.status(201).json(customer);
     }
 
     //Update's a customer
-    update(req, res){
-        const id = parseInt(req.params.id);
-        const {name, email} = req.body;
+    async update(req, res) {
+         const schema = Yup.object().shape(
+            {
+                name: Yup.string().required(),
+                email: Yup.string().email().required(),
+                status: Yup.string().uppercase(),
+            }
+        )
 
-        const index = customers.findIndex(customer => customer.id === id);
-        const status = index >= 0 ? 200 : 404;
-
-        if(index > 0){
-            customers[index] = {id: parseInt(id), name, email}
+        if(!(await schema.isValid(req.body))){
+            return res.status(400).json({error: "Error on validating Schema!"});
         }
 
-        return res.status(status).json(customers[index]);
+        const data = await Customer.findByPk(req.params.id);
+        if(!data){
+            return res.status(404).json({error: "Invalid customer id"});
+        }
+
+        await data.update(req.body);
+        return res.status(200).json(data);
     }
 
     //Removes the customer
-    destroy(req, res){
-        const id = parseInt(req.params.id);
-        const index = customers.findIndex(customer => customer.id === id);
-        const status = index >= 0 ? 200 : 404;
-
-        if(index > 0){
-            customers.splice(index, 1);
+    async destroy(req, res) {
+        const data = await Customer.findByPk(req.params.id);
+        if(!data){
+            return res.status(404).json({error: "Invalid customer id"});
         }
 
-        return res.status(status).json();
+        await data.destroy();
+        return res.status(200).json('Customer deleted successfully');
     }
 }
 
