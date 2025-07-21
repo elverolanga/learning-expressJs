@@ -2,15 +2,16 @@ import { Op } from 'sequelize';
 import { parseISO } from 'date-fns';
 import * as Yup from 'yup';
 import Contact from '../models/Contact.js';
+import Customer from '../models/Customer.js';
 
-class ContactController {
+class ContactsController {
 
     async create(req, res){
         const schema = Yup.object().shape({
             name: Yup.string().required(),
-            email: Yup.string().email().required,
+            email: Yup.string().email().required(),
             status: Yup.string().uppercase(),
-            customer_id: Yup.number().required()
+            //customer_id: Yup.number().required()
         });
 
         if(!(await schema.isValid(req.body)))
@@ -18,7 +19,10 @@ class ContactController {
             return res.status(400).json({error: "Invalid contact schema!"});
         }
 
-        const contact = await Contact.create(req.body);
+        const contact = await Contact.create({
+            customer_id: req.params.customerId,
+            ...req.body,
+        });
         return res.status(201).json(contact);
     }
 
@@ -37,7 +41,9 @@ class ContactController {
         const page = req.params.page || 1;
         const limit = req.params.limit || 25;
 
-        let where = {};
+        let where = {
+            customer_id: req.params.customerId,
+        };
         let order = [];
 
         if(name)
@@ -126,14 +132,23 @@ class ContactController {
         return res.status(200).json(data);
     }
     async show(req, res){
-        const id = parseInt(req.params.id);
-        const data = await Contact.findByPk(id);
+        const data = await Contact.findOne({
+            where: {
+                customer_id: req.params.customerId,
+                id: req.params.id
+            },
+            attributes: {
+                exclude: ['customer_id', 'customerId']
+            }
+        });
+
         if(data){
             return res.status(200).json(data);
         }
 
         return res.status(404).json('User not found!');
     }
+
     async update(req, res)
     {
         const schema = Yup.object().shape({
@@ -143,7 +158,14 @@ class ContactController {
             customer_id: Yup.number().required()
         });
 
-        const data = await Contact.findByPk(req.params.id);
+        const data = await Contact.findOne({
+            where: {
+                customer_id: req.params.customerId,
+                id: req.params.id
+            },
+            include: [Customer]
+        });
+
         if(data)
         {
             return res.status(200).json(data);
@@ -169,4 +191,4 @@ class ContactController {
     }
 }
 
-export default new ContactController();
+export default new ContactsController();

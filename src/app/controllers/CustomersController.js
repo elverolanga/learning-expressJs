@@ -102,7 +102,8 @@ class CustomersController {
                 {
                     model: Contact,
                     as:'contacts',
-                    attributes: ['id'],
+                    attributes: ['id', 'status'],
+                    required: true
                 }
             ],
             order,
