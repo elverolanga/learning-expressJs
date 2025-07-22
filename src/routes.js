@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import customers from './app/controllers/CustomersController.js';
-import contacts from './app/controllers/ContactsController.js'
-import users from './app/controllers/UsersController.js'
+import contacts from './app/controllers/ContactsController.js';
+import users from './app/controllers/UsersController.js';
+import sessions from './app/controllers/SessionsController.js';
 
 const routes = new Router();
 
@@ -19,8 +20,10 @@ routes.delete("/customers/:customerId/contacts/:id", contacts.delete);
 
 routes.get("/users", users.index);
 routes.get("/users/:id", users.show);
-routes.post("/users/create", users.create);
+routes.post("/users", users.create);
 routes.put("/users/:id", users.update);
 routes.delete("/users/:id", users.delete);
+
+routes.post("/sessions", sessions.create);
 
 export default routes;
