@@ -1,8 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-// eslint-disable-next-line no-undef
-const HASH_KEY = process.env.HASH_KEY;
-
+import authConfig from '../../config/auth.js';
 class SessionsController
 {
     async create(req, res)
@@ -26,8 +24,8 @@ class SessionsController
             user:{
                 id, name, email
             },
-            token: jwt.sign({id}, `${HASH_KEY}`, {
-                expiresIn: '7d'
+            token: jwt.sign({id}, authConfig.secret, {
+                expiresIn: authConfig.expiresIn
             } ),
             msh: "Login successfully!"
         });

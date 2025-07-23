@@ -2,3 +2,4 @@ node_modules
 .env
 eslint.config.mjs
 editor.config
+./app/playground.js

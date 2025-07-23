@@ -99,7 +99,7 @@ class UsersController
             }
         });
 
-
+        console.log({userId: req.userId});
         return res.status(200).json(data);
     }
 

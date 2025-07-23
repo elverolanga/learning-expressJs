@@ -1,6 +1,6 @@
 import express from 'express';
 
-import authMiddleware from './app/middlewares/auth.js';
+//import authMiddleware from './app/middlewares/auth.js';
 
 import routes from './routes.js';
 
@@ -15,7 +15,7 @@ class App {
     middlewares(){
         this.server.use(express.json());
         this.server.use(express.urlencoded({extended: false}));
-        this.server.use(authMiddleware);
+        //this.server.use(authMiddleware);
     }
 
     routes(){
